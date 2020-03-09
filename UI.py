@@ -1,6 +1,6 @@
 from tkinter import *
 from tkintertable import *
-
+import PacketSniffer
 
 
 class Page(Frame):
@@ -31,10 +31,13 @@ class Home(Page):
         self.treeview = PortTable
         Label(self, text='Number of Alerts: ', borderwidth=1).grid(sticky=(S, W), padx=100, pady=0)
         Label(self, text='Highest Priority: ', borderwidth=1).grid(sticky=(S, W), padx=100, pady=50)
-        Button(self, text='Go To Alerts', command=AlertsButton.focus()).grid(sticky=(S, W), padx=200, pady=30)
+        Button(self, text='Go To Alerts').grid(sticky=(S, W), padx=200, pady=30)
         self.grid_rowconfigure(0, weight = 1)
         self.grid_columnconfigure(0, weight = 1)
+        
+        
 
+        
         
 class Port(Page):
     def __init__(self, master=None):
@@ -44,19 +47,29 @@ class Capture(Page):
     def __init__(self, master=None):
         Page.__init__(self, master)
         CaptureTable = Treeview(self)
-        CaptureTable['columns'] = ('Destination', 'Protocol', 'Information')
-        CaptureTable.heading("#0", text='Source', anchor='w')
-        CaptureTable.column("#0", anchor="w", width=100)
+        CaptureTable['columns'] = ['Source', 'Destination', 'Protocol', 'Information']
+        CaptureTable['show'] = 'headings'
+        CaptureTable.heading('Source', text='Source')
+        CaptureTable.column('Source', anchor="w", width=100)
         CaptureTable.heading('Destination', text='Destination')
         CaptureTable.column('Destination', anchor='center', width=100)
         CaptureTable.heading('Protocol', text='Protocol')
         CaptureTable.column('Protocol', anchor='center', width=100)
         CaptureTable.heading('Information', text='Information')
-        CaptureTable.column('Information', anchor='center', width=100)
+        CaptureTable.column('Information', anchor='e', width=100)
         CaptureTable.grid(sticky = (N,E,S,W))
         self.treeview = CaptureTable
+        
         self.grid_rowconfigure(0, weight = 1)
         self.grid_columnconfigure(0, weight = 1)
+
+
+        Array = PacketSniffer.CapturePackets(100)
+        index = iid = 0
+        for row in Array:
+            CaptureTable.insert("", index, iid, values=row)
+            index = iid = index + 1
+        
         
 class Alerts(Page):
     def __init__(self, master=None):
