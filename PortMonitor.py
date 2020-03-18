@@ -2,10 +2,9 @@ import socket
 import psutil
 import threading
 import time
-import ProcessFinder
 from queue import Queue
 import select
-PortsArray = [[None for _ in range(1)] for _ in range(1)]
+import scapy
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
@@ -22,9 +21,7 @@ LoopbackAddress = '127.0.0.1'
 print_lock = threading.Lock()
 print(Host)
 Port = 0 #First port.
-global var1
-var1 = 0
-def PortScanner(Port, var1):
+def PortScanner(Port, PortsArray):
     "while Port <= 65535: #Port 65535 is last port you can access."
     data = ''
     TCPSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -48,15 +45,18 @@ def PortScanner(Port, var1):
 
     if TCPResult1 == 0 or TCPResult2 == 0:
         with print_lock:
-            PortsArray.append([Port, "TCP"])
-            var1 += 1
-            print(Port, " is open and TCP")
-            
+            PortsArray.append([])
+            PortsArray[((len(PortsArray)) -1)].append([])
+            PortsArray[((len(PortsArray)) -1)].append([])
+            PortsArray[((len(PortsArray)) -1)][0] = Port
+            PortsArray[((len(PortsArray)) -1)][1] = "TCP"            
     elif data != '':
         with print_lock:
-            PortsArray.append([Port, "UDP"])
-            var1 += 1
-            print(Port, "is open and UDP")
+            PortsArray.append([])
+            PortsArray[((len(PortsArray)) -1)].append([])
+            PortsArray[((len(PortsArray)) -1)].append([])
+            PortsArray[((len(PortsArray)) -1)][0] = Port
+            PortsArray[((len(PortsArray)) -1)][1] = "UDP"
     """else:
         with print_lock:
             print(Port, " is closed")"""
@@ -65,31 +65,41 @@ def PortScanner(Port, var1):
     UDPSocket.shutdown(socket.SHUT_RDWR)
     return PortsArray
 
-def FindProcess(PortsArray):
-    for i in range(len(PortsArray)):
-        try:
-            for proc in psutil.process_iter():
-                for conns in proc.connections(kind='inet'):
+def FindProcess(PortsArray, PortProcessGot):
+        
+    for proc in psutil.process_iter():
+        for conns in proc.connections(kind='inet'):
+            try:
+                for i in range(len(PortsArray)):
                     if conns.laddr.port == PortsArray[i][0]:
-                        PortsArray[i].append(proc.name())
-                        PortsArray[i].append(proc.io_counters().other_bytes)
-                        raise Exception()
-        except Exception:
-            continue
+                        if PortProcessGot[i] == True:
+                            raise Exception()
+                        else:
+                            PortsArray[i].append([])
+                            PortsArray[i].append([])
+                            PortsArray[i][2] = proc.name()
+                            PortsArray[i][3] = conns.laddr.ip
+                            PortProcessGot[i] = True
+            except Exception:
+                continue
     return PortsArray
 
 
-
 def GetPorts():
+    PortsArray = [[0] * 3 for i in range(1)]
+    PortProcessGot = [False for _ in range(65535)]
+    PortArray = ThreadedPortFinder(PortsArray, PortProcessGot)
+    return PortArray
 
+
+def ThreadedPortFinder(PortsArray, PortProcessGot):
     def threader():
         while True:
             # gets an worker from the queue
             worker = q.get()
 
             # Run the example job with the avail worker in queue (thread)
-            PortsArray = PortScanner(worker, var1)
-        
+            PortScanner(worker, PortsArray)
             # completed with the job
             q.task_done()
 
@@ -109,7 +119,11 @@ def GetPorts():
         q.put(worker)
 
     q.join()
+    print("Ports Found")
+    PortProcessArray = FindProcess(PortsArray, PortProcessGot)
+    print("Processes Found")
+    PortProcessArray.pop(0)
+    PortProcessArray.sort()
+    return PortProcessArray
 
-    PortArray = FindProcess(PortsArray)
-    "PortArray.sort()"
-    return PortsArray
+
