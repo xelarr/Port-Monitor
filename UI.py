@@ -2,8 +2,12 @@ from tkinter import *
 from tkintertable import *
 import PacketSniffer
 import PortMonitor
+import HomeGraph
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+import threading
+from random import randint
+import psutil
 
 class Page(Frame):
     def __init__(self, master=None):
@@ -16,9 +20,20 @@ class Home(Page):
         Page.__init__(self, master)
         AlertsPage = Alerts(self)
         PortPage = Port(self)
+        Home.BytesSent = []
+        Home.BytesRecv = []
         Home.GraphCanvas = Canvas(self)
-        Home.Rectangle = Home.GraphCanvas.create_rectangle(650, 580, 1100, 740, fill="white")
+        Home.Rectangle = Home.GraphCanvas.create_rectangle(650, 580, 1150, 740, fill="white")
         Home.GraphCanvas.pack(fill=BOTH, expand=1)
+        Home.ContinuePlotting = False
+        fig = Figure()
+    
+        Home.ax = fig.add_subplot(111)
+        Home.ax.get_xaxis().set_visible(False)
+        "Home.ax.place(x=670, y= 590, height= 150, width=430)"
+ 
+        Home.graph = FigureCanvasTkAgg(fig, master=Home.GraphCanvas)
+        Home.graph.get_tk_widget().place(x=710, y=590, height= 150, width=430)
         self.PortTable = Treeview(self, selectmode='browse')
         self.PortTable.pack()
         self.PortTable.place(x = 0, y = 20, height = 500, width = 1190)
@@ -62,6 +77,29 @@ class Home(Page):
         Home.PortAnswerBox.place(x=520, y=550)
         Button(self, command=lambda:[master.LiftPort(), Port.RecievePort(Port)], text="View Port").place(x=620, y=548)
         
+        b = Button(self, text="Start/Stop", command=Home.change_state).place(x=800, y=548)
+        Label(self, text="Bytes", borderwidth=1, background='white').place(x=660, y=650)
+    def change_state():
+        print("updated")
+        if Home.ContinuePlotting == True:
+            Home.ContinuePlotting = False
+        else:
+            Home.ContinuePlotting = True
+        Home.gui_handler()
+
+    def gui_handler():
+        if Home.ContinuePlotting == True:
+            Home.ax.cla()
+            Home.ax.grid()
+            BytesSent = HomeGraph.GetBytesSent(Home,Home.BytesSent)
+            BytesRecv = HomeGraph.GetBytesRecv(Home,Home.BytesRecv)
+            BytesSentLine = Home.ax.plot(range(len(Home.BytesSent)), BytesSent, marker='o', color='orange', label='Bytes Sent')
+            BytesRecvLine = Home.ax.plot(range(len(Home.BytesRecv)), BytesRecv, marker='o', color='blue', label = 'Bytes Recieved')
+            Home.ax.legend(loc='upper left', fontsize=8)
+            Home.graph.draw()
+            root.update_idletasks()
+            root.after(200, Home.gui_handler)
+    
     def UpdatePorts(self):
         PortsArray = PortMonitor.GetPorts()
         self.UpdateTable(PortsArray)
@@ -233,4 +271,5 @@ root.wm_title("Port Monitor")
 root.wm_geometry("1200x800")
 root.resizable(width=False, height=False)
 # show window
+"root.after(500, Home.gui_handler())"
 root.mainloop()
