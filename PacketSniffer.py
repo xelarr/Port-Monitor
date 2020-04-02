@@ -16,7 +16,7 @@ def CapturePackets(NumOfPackets):
             if (1 < pkt[IP].ttl <= 30) or (64 < pkt[IP].ttl <= 98) or (128 < pkt[IP].ttl <= 225):
                 PacketsArray.append([pkt[IP].src, pkt[IP].dst, ProtocolLookupTable[pkt.proto],  pkt[IP].ttl])
             else:
-                PacketsArray.append([pkt[IP].src, pkt[IP].dst, ProtocolLookupTable[pkt.proto]])
+                PacketsArray.append([pkt[IP].src, pkt[IP].dst, ProtocolLookupTable[pkt.proto], "Length: {} | Flags: {} | ID: {} | TTL: {}".format(pkt[IP].len, pkt[IP].flags, pkt[IP].id, pkt[IP].ttl)])
         except KeyError:
             PacketsArray.append([pkt[IP].src, pkt[IP].dst, "IGMP"])
         return PacketsArray

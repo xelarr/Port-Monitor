@@ -77,8 +77,10 @@ def FindProcess(PortsArray, PortProcessGot):
                         else:
                             PortsArray[i].append([])
                             PortsArray[i].append([])
-                            PortsArray[i][2] = proc.name()
-                            PortsArray[i][3] = conns.laddr.ip
+                            PortsArray[i].append([])
+                            PortsArray[i][2] = proc.pid
+                            PortsArray[i][3] = proc.name()
+                            PortsArray[i][4] = conns.laddr.ip
                             PortProcessGot[i] = True
             except Exception:
                 continue
